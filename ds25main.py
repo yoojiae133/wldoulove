@@ -1,8 +1,7 @@
-pip install matplotlib
 import streamlit as st
 import pandas as pd
 import datetime
-import matplotlib.pyplot as plt
+import altair as alt
 
 # ------------------------------
 # 연핑크 배경 적용
@@ -17,11 +16,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ------------------------------
 st.title("🐷 핑크 돼지 용돈 관리 앱 💖")
 
 # ------------------------------
-# 세션 초기화
+# 세션 상태 초기화
 if 'allowance' not in st.session_state:
     st.session_state.allowance = 0
 if 'data' not in st.session_state:
@@ -41,7 +39,7 @@ if st.session_state.allowance == 0:
     st.stop()
 
 # ------------------------------
-# 지출 입력
+# 지출 입력 폼
 st.header("📥 지출 입력하기")
 with st.form("expense_form"):
     date = st.date_input("날짜", datetime.date.today())
@@ -56,12 +54,12 @@ with st.form("expense_form"):
         st.success("✅ 저장되었습니다!")
 
 # ------------------------------
-# 지출 내역 표시
+# 지출 내역
 st.header("📋 지출 내역")
 st.dataframe(st.session_state.data)
 
 # ------------------------------
-# 총 지출, 남은 돈 계산
+# 요약 정보
 total_spent = st.session_state.data['금액'].sum()
 remaining = st.session_state.allowance - total_spent
 
@@ -72,34 +70,33 @@ col2.metric("총 지출", f"{int(total_spent):,} 원")
 col3.metric("남은 돈", f"{int(remaining):,} 원 🐷")
 
 # ------------------------------
-# 📊 카테고리별 소비 분석 (matplotlib 사용!)
+# 소비 분석 (Altair로 예쁜 색!)
 st.header("📊 카테고리별 소비 분석")
 if not st.session_state.data.empty:
-    category_sum = st.session_state.data.groupby('카테고리')['금액'].sum()
-    categories = category_sum.index.tolist()
-    values = category_sum.values.tolist()
+    df = st.session_state.data.groupby("카테고리", as_index=False)["금액"].sum()
 
-    pink_palette = ['#ffb6c1', '#ffc0cb', '#ff69b4', '#f08080', '#ffa6c9']
+    # altair 차트 생성
+    chart = alt.Chart(df).mark_bar().encode(
+        x=alt.X('카테고리:N', title='카테고리'),
+        y=alt.Y('금액:Q', title='지출 금액 (원)'),
+        color=alt.Color('카테고리:N',
+                        scale=alt.Scale(
+                            domain=["식비", "교통", "쇼핑", "취미", "기타"],
+                            range=["#ffb6c1", "#ffc0cb", "#ff69b4", "#f08080", "#ffa6c9"]
+                        ),
+                        legend=None),
+        tooltip=["카테고리", "금액"]
+    ).properties(
+        width=600,
+        height=400,
+        title="🌸 핑크핑크한 카테고리별 소비 그래프"
+    )
 
-    fig, ax = plt.subplots()
-    bars = ax.bar(categories, values, color=pink_palette[:len(categories)])
-
-    # 금액 텍스트 표시
-    for bar in bars:
-        height = bar.get_height()
-        ax.annotate(f'{int(height):,}원',
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 5),
-                    textcoords="offset points",
-                    ha='center', va='bottom')
-
-    ax.set_title("카테고리별 지출 (연핑크 톤)")
-    ax.set_ylabel("지출 금액 (원)")
-    st.pyplot(fig)
+    st.altair_chart(chart, use_container_width=True)
 
 # ------------------------------
-# 초기화 버튼
+# 초기화
 if st.button("🔄 전체 초기화"):
     st.session_state.allowance = 0
     st.session_state.data = pd.DataFrame(columns=['날짜', '항목', '금액', '카테고리'])
-    st.success("데이터가 초기화되었습니다! 🎉")
+    st.success("초기화되었습니다!")

@@ -1,20 +1,49 @@
 import streamlit as st
-st.title('나의 첫 웹 서비스 만들기!!') 
-import streamlit as st
 import pandas as pd
 import datetime
 
 # ------------------------------
-# 앱 제목
-st.title("💸 나만의 용돈 관리 앱")
+# 배경 핑크색 적용 (HTML + CSS)
+st.markdown(
+    """
+    <style>
+        body {
+            background-color: #ffe6f0;
+        }
+        .main {
+            background-color: #ffe6f0;
+        }
+        .stApp {
+            background-color: #ffe6f0;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # ------------------------------
-# 데이터 불러오기 or 새로 만들기
+st.title("🐷 핑크 돼지 용돈 관리 앱 💖")
+
+# ------------------------------
+# 초기 용돈 입력 (최초 1번만)
+if 'allowance' not in st.session_state:
+    st.session_state.allowance = 0
 if 'data' not in st.session_state:
     st.session_state.data = pd.DataFrame(columns=['날짜', '항목', '금액', '카테고리'])
 
+if st.session_state.allowance == 0:
+    st.header("💵 처음 받은 용돈을 입력해 주세요!")
+    initial = st.number_input("받은 용돈 (원)", min_value=0, step=100)
+    if st.button("⏳ 저장하고 시작하기"):
+        if initial > 0:
+            st.session_state.allowance = initial
+            st.success("✅ 저장 완료! 지출을 입력해 보세요.")
+        else:
+            st.warning("용돈은 0보다 커야 해요!")
+    st.stop()
+
 # ------------------------------
-# 입력 폼
+# 지출 입력 폼
 st.header("📥 지출 입력하기")
 
 with st.form("expense_form"):
@@ -30,17 +59,23 @@ with st.form("expense_form"):
         st.success("✅ 저장되었습니다!")
 
 # ------------------------------
-# 데이터 출력
+# 지출 내역
 st.header("📋 지출 내역")
 st.dataframe(st.session_state.data)
 
 # ------------------------------
-# 총 지출 금액
-total = st.session_state.data['금액'].sum()
-st.metric("💰 총 지출 금액", f"{int(total):,} 원")
+# 총 지출 및 남은 용돈 계산
+total_spent = st.session_state.data['금액'].sum()
+remaining = st.session_state.allowance - total_spent
+
+st.subheader("💰 요약 정보")
+col1, col2, col3 = st.columns(3)
+col1.metric("총 용돈", f"{int(st.session_state.allowance):,} 원")
+col2.metric("총 지출", f"{int(total_spent):,} 원")
+col3.metric("남은 돈", f"{int(remaining):,} 원 🐷")
 
 # ------------------------------
-# 카테고리별 분석
+# 카테고리 분석 그래프
 st.header("📊 카테고리별 소비 분석")
 if not st.session_state.data.empty:
     category_sum = st.session_state.data.groupby('카테고리')['금액'].sum()
@@ -49,5 +84,6 @@ if not st.session_state.data.empty:
 # ------------------------------
 # 리셋 버튼
 if st.button("🔄 전체 초기화"):
+    st.session_state.allowance = 0
     st.session_state.data = pd.DataFrame(columns=['날짜', '항목', '금액', '카테고리'])
-    st.success("모든 데이터가 초기화되었습니다.")
+    st.success("처음부터 다시 시작할 수 있어요! 🎉")

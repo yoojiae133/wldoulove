@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import datetime
-import matplotlib.pyplot as plt
 
 # ------------------------------
 # 연핑크 배경 적용
@@ -20,7 +19,7 @@ st.markdown(
 st.title("🐷 핑크 돼지 용돈 관리 앱 💖")
 
 # ------------------------------
-# 세션 초기화
+# 세션 상태 초기화
 if 'allowance' not in st.session_state:
     st.session_state.allowance = 0
 if 'data' not in st.session_state:
@@ -40,7 +39,7 @@ if st.session_state.allowance == 0:
     st.stop()
 
 # ------------------------------
-# 지출 입력
+# 지출 입력 폼
 st.header("📥 지출 입력하기")
 with st.form("expense_form"):
     date = st.date_input("날짜", datetime.date.today())
@@ -55,12 +54,12 @@ with st.form("expense_form"):
         st.success("✅ 저장되었습니다!")
 
 # ------------------------------
-# 지출 내역 표시
+# 지출 내역
 st.header("📋 지출 내역")
 st.dataframe(st.session_state.data)
 
 # ------------------------------
-# 총 지출, 남은 돈 계산
+# 요약 정보
 total_spent = st.session_state.data['금액'].sum()
 remaining = st.session_state.allowance - total_spent
 
@@ -71,34 +70,15 @@ col2.metric("총 지출", f"{int(total_spent):,} 원")
 col3.metric("남은 돈", f"{int(remaining):,} 원 🐷")
 
 # ------------------------------
-# 📊 카테고리별 소비 분석 (matplotlib 사용!)
+# 소비 분석 (streamlit 기본 bar_chart로 단순 시각화)
 st.header("📊 카테고리별 소비 분석")
 if not st.session_state.data.empty:
     category_sum = st.session_state.data.groupby('카테고리')['금액'].sum()
-    categories = category_sum.index.tolist()
-    values = category_sum.values.tolist()
-
-    pink_palette = ['#ffb6c1', '#ffc0cb', '#ff69b4', '#f08080', '#ffa6c9']
-
-    fig, ax = plt.subplots()
-    bars = ax.bar(categories, values, color=pink_palette[:len(categories)])
-
-    # 금액 텍스트 표시
-    for bar in bars:
-        height = bar.get_height()
-        ax.annotate(f'{int(height):,}원',
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 5),
-                    textcoords="offset points",
-                    ha='center', va='bottom')
-
-    ax.set_title("카테고리별 지출 (연핑크 톤)")
-    ax.set_ylabel("지출 금액 (원)")
-    st.pyplot(fig)
+    st.bar_chart(category_sum)
 
 # ------------------------------
-# 초기화 버튼
+# 초기화
 if st.button("🔄 전체 초기화"):
     st.session_state.allowance = 0
     st.session_state.data = pd.DataFrame(columns=['날짜', '항목', '금액', '카테고리'])
-    st.success("데이터가 초기화되었습니다! 🎉")
+    st.success("데이터가 초기화되었습니다!")
